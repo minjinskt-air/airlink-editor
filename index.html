@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>air링크 에디터</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  /* air 디자인 가이드 — 흰 바탕, 얇은 회색 보더 카드, 블랙 CTA, 블루 액센트 */
+  --ink:#111417;--black:#0B0F10;--ink60:#5B6066;--ink40:#8B9096;--ink20:#C9CDD2;
+  --line:#E6E8EB;--line2:#F1F2F4;--base:#F1F2F5;--white:#fff;
+  --blue:#2C64F6;--blue-soft:#EEF3FF;--blue-ink:#1D4ED8;
+  --cobalt:var(--blue);--cobalt-soft:var(--blue-soft);--signal:#FFC400;
+  --alert:#E5484D;--ok:#2C64F6;--call:#2BB24C;
+  --r:10px;--rc:12px;--rl:16px;
+  --font:"Pretendard","Pretendard Variable",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:var(--font);color:var(--ink);background:#EEF0F3;
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;
+  display:flex;align-items:center;justify-content:center;gap:26px;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea{font-family:inherit;border:none;outline:none;background:none;color:inherit;width:100%}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
+/* ---------- air 워드마크 ---------- */
+.logo{display:block;height:24px;width:auto;flex:0 0 auto}
+
+/* ---------- 사이드 라벨 ---------- */
+#aside{width:208px;flex:0 0 208px;display:none}
+@media(min-width:900px) and (min-height:860px){#aside{display:block}}
+#aside h1{font-size:20px;font-weight:800;letter-spacing:-.03em}
+#aside .kick{font-size:11.5px;font-weight:700;color:var(--blue);margin-bottom:6px}
+#aside p{font-size:12.5px;line-height:1.65;color:var(--ink60);margin-top:10px}
+#aside p b{color:var(--ink)}
+#aside .steps{margin-top:20px;border-top:1px solid #D9DCE1;padding-top:14px}
+#aside .st{display:flex;gap:9px;padding:7px 0;font-size:12.5px;color:var(--ink40);align-items:center}
+#aside .st i{
+  width:18px;height:18px;border-radius:50%;background:#D9DDE3;color:#fff;flex:0 0 18px;
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-style:normal;
+}
+#aside .st.on{color:var(--ink);font-weight:700}
+#aside .st.on i{background:var(--blue)}
+#aside .st.done i{background:var(--black)}
+#aside .hint{margin-top:18px;font-size:11.5px;line-height:1.6;color:var(--ink40);border-top:1px solid #D9DCE1;padding-top:14px;background:none;border-radius:0;padding-left:0;padding-right:0}
+#aside .hint b{color:var(--ink60)}
+#aside .io{margin-top:8px;font-size:12px;font-weight:600;color:var(--ink);height:40px;border:1px solid var(--line);border-radius:var(--r);background:#fff;width:100%}
+#aside .io:hover{border-color:var(--ink40)}
+#aside .wipe{margin-top:14px;font-size:12px;font-weight:600;color:var(--alert);height:40px;border:1px solid #F0D2D3;border-radius:var(--r);background:#fff;width:100%}
+
+/* ---------- device shell ---------- */
+#device{
+  width:390px;height:100%;max-height:844px;background:var(--white);
+  position:relative;overflow:hidden;display:flex;flex-direction:column;
+}
+@media(min-width:460px) and (min-height:880px){
+  #device{border-radius:42px;box-shadow:0 24px 70px rgba(16,20,30,.16);height:844px}
+}
+@media(max-width:459px){ body{background:#fff} }
+
+.statusbar{
+  height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;font-size:12px;font-weight:600;color:var(--ink40);
+}
+.view{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.pad{padding:0 20px}
+.pb{padding-bottom:24px}
+
+/* 상단 내비: 꺾쇠 + 좌측 정렬 타이틀 */
+.nav{height:52px;flex:0 0 52px;display:flex;align-items:center;gap:4px;padding:0 10px}
+.nav .bk{width:40px;height:40px;flex:0 0 40px;display:flex;align-items:center;justify-content:center;color:var(--black)}
+.nav .t{flex:1;font-size:15px;font-weight:700;letter-spacing:-.02em}
+.nav .r{font-size:14px;font-weight:600;color:var(--ink60);padding:8px 10px}
+/* 단계 진행바 */
+.prog{display:flex;gap:3px;padding:4px 20px 0;flex:0 0 auto}
+.prog i{flex:1;height:4px;border-radius:2px;background:#EEF0F3}
+.prog i.on{background:var(--blue)}
+
+h1.head{font-size:22px;font-weight:700;line-height:1.42;letter-spacing:-.035em;margin-top:26px}
+p.sub{font-size:14px;line-height:1.6;color:var(--ink60);margin-top:8px}
+.label{font-size:13px;font-weight:600;color:var(--ink60);margin:24px 0 10px}
+.note{font-size:12px;line-height:1.6;color:var(--ink40);text-align:center;padding-top:12px}
+
+.btn{
+  width:100%;height:56px;border-radius:var(--r);background:var(--black);color:#fff;
+  font-size:16px;font-weight:600;letter-spacing:-.02em;transition:opacity .12s,transform .08s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn:active{transform:scale(.985)}
+.btn:disabled{background:#E9EBEE;color:#B4B9BF;cursor:default;transform:none}
+.btn.blue{background:var(--blue)}
+.btn.sec{background:var(--base);color:var(--ink)}
+.btn.ghost{background:none;color:var(--ink60);height:46px;font-weight:500;font-size:14px}
+.foot{flex:0 0 auto;padding:12px 20px 24px;background:var(--white)}
+
+/* 선택 카드 (통신사 선택형) */
+.opt{display:flex;align-items:center;gap:12px;min-height:62px;padding:0 20px;border:1px solid var(--line);border-radius:var(--rc);margin-bottom:10px;font-size:15px;font-weight:500;width:100%;text-align:left;background:#fff;transition:border-color .12s}
+.opt .ck{margin-left:auto;color:var(--ink20);display:flex}
+.opt[aria-pressed="true"]{border:1.5px solid var(--black);padding:0 19.5px}
+.opt[aria-pressed="true"] .ck{color:var(--black)}
+
+/* 안내 카드 (가입 신청 내역형) */
+.card{border:1px solid var(--line);border-radius:var(--rc);padding:26px 22px 22px;text-align:center;margin-top:14px;background:#fff}
+.card p{font-size:15px;line-height:1.6;font-weight:500;color:var(--ink)}
+.card p.cap{font-size:13px;color:var(--ink40);font-weight:500;margin-top:4px}
+.card .btn{margin-top:22px;height:52px;font-size:15px}
+
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.key{height:54px;border-radius:var(--r);background:#F6F7F9;font-size:22px;font-weight:600;transition:background .1s,transform .08s}
+.key:active{background:var(--blue-soft);transform:scale(.96)}
+.key.aux{font-size:14px;font-weight:600;color:var(--ink60);background:transparent}
+.key.aux:active{background:var(--line2)}
+
+.display{display:flex;align-items:center;justify-content:center;gap:4px;font-size:42px;font-weight:800;letter-spacing:-.02em;padding:22px 0 8px}
+.display .d{width:34px;text-align:center}
+.display .d.off{color:var(--line)}
+.display .st{color:var(--blue);margin-left:8px}
+.state{text-align:center;font-size:13.5px;font-weight:600;height:22px;transition:color .15s}
+.state.idle{color:var(--ink40);font-weight:500}
+.state.ok{color:var(--blue)}
+.state.no{color:var(--alert)}
+
+.chips{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:14px 0 18px}
+.chip{font-size:12.5px;font-weight:500;padding:8px 13px;border-radius:99px;background:#fff;border:1px solid var(--line);color:var(--ink60)}
+.chip:active{border-color:var(--black)}
+.chip b{font-weight:700;color:var(--ink)}
+
+.field{margin-bottom:12px}
+.field>span{display:block;font-size:13px;font-weight:600;color:var(--ink60);margin-bottom:8px}
+.inp{min-height:52px;border:1px solid var(--line);border-radius:var(--rc);padding:14px 16px;font-size:15px;display:flex;align-items:center}
+.inp:focus-within{border:1.5px solid var(--black);padding:13.5px 15.5px}
+.inp input::placeholder,.inp textarea::placeholder{color:var(--ink20)}
+textarea{resize:none;line-height:1.5}
+
+.avatar-pick{display:flex;flex-direction:column;align-items:center;gap:9px;padding:18px 0 18px}
+.avatar{
+  width:84px;height:84px;border-radius:50%;background:#F6F7F9;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  font-size:28px;font-weight:700;color:var(--ink60);border:1px solid var(--line);
+}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.avatar-pick span{font-size:13px;font-weight:600;color:var(--blue)}
+
+.lrow{display:flex;align-items:center;gap:11px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--rc);margin-bottom:8px;background:var(--white)}
+.lrow .grip{color:var(--ink20);font-size:15px;letter-spacing:-3px;flex:0 0 12px}
+.ico{width:34px;height:34px;border-radius:10px;flex:0 0 34px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800}
+.ico svg{width:17px;height:17px}
+.lrow .tx{flex:1;min-width:0}
+.lrow .tx b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .tx span{display:block;font-size:12px;color:var(--ink40);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .more{color:var(--ink40);font-size:17px;padding:4px 2px;flex:0 0 auto}
+.addrow{height:54px;border-radius:var(--rc);background:#F6F7F9;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14.5px;font-weight:600;color:var(--ink);width:100%}
+.hint{padding:13px 16px;background:#F6F7F9;border-radius:var(--rc);font-size:12.5px;line-height:1.6;color:var(--ink60);margin-top:10px}
+.hint b{color:var(--ink)}
+
+/* 테마 선택 */
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:22px 0 18px}
+.tgrid .opt{margin:0;min-height:56px;padding:0 14px;gap:10px}
+.tgrid .opt[aria-pressed="true"]{padding:0 13.5px}
+.dot{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);flex:0 0 22px}
+.dot.paper{background:#fff}.dot.ink{background:#14161A}.dot.cobalt{background:#2C64F6}.dot.signal{background:#FFCC00}
+.preview{border:1px solid var(--line);border-radius:var(--rl);overflow:hidden;height:300px}
+
+/* ---------- 인트로 ---------- */
+.introwrap{padding:12px 20px 22px;background:#fff;min-height:100%;display:flex;flex-direction:column}
+.introwrap>*{flex:0 0 auto}
+.brandtop{display:flex;align-items:flex-end;gap:5px}
+.brandtop .bt{font-size:18px;font-weight:700;letter-spacing:-.03em;line-height:1;padding-bottom:1px}
+h1.hero{font-size:26px;font-weight:800;line-height:1.36;letter-spacing:-.045em;margin-top:20px}
+h1.hero b{color:var(--blue);font-weight:800}
+p.herosub{font-size:14px;line-height:1.6;color:var(--ink60);margin-top:10px}
+
+.duo{display:flex;align-items:center;gap:0;margin-top:22px;flex:1 1 auto;min-height:0}
+.duo .arw{flex:0 0 24px;text-align:center;font-size:16px;font-weight:800;color:var(--ink20);letter-spacing:-3px}
+.mini{
+  flex:1;min-width:0;background:#fff;border-radius:14px;border:1px solid var(--line);
+  overflow:hidden;height:405px;max-height:100%;display:flex;flex-direction:column;
+}
+.mini .mbar{height:15px;flex:0 0 15px;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:6.5px;font-weight:700;color:var(--ink20)}
+.mini .mbody{flex:1;min-height:0;padding:6px 10px 10px;display:flex;flex-direction:column}
+.mini .mbody>*{flex:0 0 auto}
+.mkeys span,.mrow{flex:0 0 auto}
+
+.mnum{text-align:center;font-size:27px;font-weight:700;letter-spacing:.02em;margin-top:12px}
+.mnum span{color:var(--blue)}
+.mcap{text-align:center;font-size:8.5px;color:var(--ink40);margin-top:3px}
+.mkeys{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:16px;padding:0 6px}
+.mkeys span{
+  height:33px;border-radius:50%;background:#F3F4F6;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--ink);line-height:1;
+}
+.mkeys span em{font-style:normal;font-size:5px;font-weight:700;color:var(--ink20);margin-top:1px;letter-spacing:.04em}
+.mcall{display:flex;justify-content:center;margin-top:auto;padding-top:8px}
+.mcall i{width:34px;height:34px;border-radius:50%;background:var(--call);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-style:normal}
+
+.mhead{display:flex;align-items:flex-end;justify-content:center;gap:2px;font-size:7.5px;font-weight:700;letter-spacing:-.02em;color:var(--black);line-height:1}
+.mhead .logo{height:8px}
+.mav{width:46px;height:46px;border-radius:50%;margin:8px auto 6px;background:linear-gradient(140deg,#C9D6FB,#9DB5F8);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:#fff}
+.mname{text-align:center;font-size:11px;font-weight:700;letter-spacing:-.02em}
+.mnum2{text-align:center;font-size:9.5px;font-weight:700;color:var(--ink60);margin-top:1px}
+.mnum2 span{color:var(--blue)}
+.mbio{text-align:center;font-size:7px;color:var(--ink40);margin-top:3px}
+.mrows{margin-top:11px;display:flex;flex-direction:column;gap:6px}
+.mrow{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);border-radius:7px;padding:6px 7px}
+.mrow .mi{width:18px;height:18px;border-radius:6px;flex:0 0 18px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:#fff;padding:0;border:none;font-size:7px}
+.mrow .mt{flex:1;min-width:0}
+.mrow .mt b{display:block;font-size:8px;font-weight:700;letter-spacing:-.01em}
+.mrow .mt em{display:block;font-style:normal;font-size:6.5px;color:var(--ink40);margin-top:.5px}
+.mrow .mg{font-size:8px;color:var(--ink20)}
+
+/* ---------- 공개 페이지(미리보기) ---------- */
+.page{min-height:100%;display:flex;flex-direction:column;padding:34px 22px 20px;background:var(--pg-bg);color:var(--pg-fg)}
+.page[data-theme=paper]{--pg-bg:#fff;--pg-fg:#111417;--pg-btn:#fff;--pg-bd:#E6E8EB;--pg-mute:#8B9096;--pg-acc:#2C64F6}
+.page[data-theme=ink]{--pg-bg:#111417;--pg-fg:#fff;--pg-btn:#1C1F24;--pg-bd:#30343B;--pg-mute:#959BA4;--pg-acc:#FFCC00}
+.page[data-theme=cobalt]{--pg-bg:#2C64F6;--pg-fg:#fff;--pg-btn:rgba(255,255,255,.14);--pg-bd:rgba(255,255,255,.3);--pg-mute:rgba(255,255,255,.75);--pg-acc:#FFCC00}
+.page[data-theme=signal]{--pg-bg:#FFCC00;--pg-fg:#111417;--pg-btn:rgba(255,255,255,.55);--pg-bd:rgba(17,20,23,.14);--pg-mute:rgba(17,20,23,.6);--pg-acc:#2C64F6}
+.pg-num{text-align:center;font-size:15px;font-weight:800;letter-spacing:.04em}
+.pg-num em{font-style:normal;color:var(--pg-acc)}
+.pg-av{width:90px;height:90px;border-radius:50%;margin:20px auto 14px;overflow:hidden;background:var(--pg-btn);border:1px solid var(--pg-bd);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800}
+.pg-av img{width:100%;height:100%;object-fit:cover}
+.pg-name{text-align:center;font-size:20px;font-weight:700;letter-spacing:-.03em}
+.pg-bio{text-align:center;font-size:13.5px;line-height:1.6;color:var(--pg-mute);margin-top:7px;white-space:pre-line}
+.pg-links{margin-top:24px;display:flex;flex-direction:column;gap:10px}
+.pg-link{min-height:58px;border-radius:var(--rc);background:var(--pg-btn);border:1px solid var(--pg-bd);display:flex;align-items:center;gap:12px;padding:0 16px;font-size:14.5px;font-weight:600;color:var(--pg-fg);text-align:left;width:100%;text-decoration:none}
+.pg-link .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pg-foot{margin-top:auto;padding-top:26px;text-align:center}
+.pg-cta{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--pg-fg);border:1px solid var(--pg-bd);border-radius:99px;padding:10px 16px}
+.pg-rep{font-size:11px;color:var(--pg-mute);margin-top:11px}
+
+.numcard{border:1px solid var(--line);border-radius:var(--rc);padding:26px 18px;text-align:center;margin-top:22px}
+.numcard .n{font-size:36px;font-weight:800;letter-spacing:-.04em}
+.numcard .n em{font-style:normal;color:var(--blue)}
+.numcard .c{font-size:13px;color:var(--ink40);margin-top:6px}
+.ch{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--rc);margin-bottom:8px;width:100%;text-align:left;background:#fff}
+.ch .cb{width:38px;height:38px;border-radius:10px;background:#F6F7F9;display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 38px}
+.ch .cx{flex:1;min-width:0}
+.ch .cx b{display:block;font-size:14.5px;font-weight:600}
+.ch .cx span{display:block;font-size:12px;color:var(--ink40);margin-top:2px}
+.ch .act{font-size:13px;font-weight:600;color:var(--blue);flex:0 0 auto}
+#qrbox{display:flex;justify-content:center;padding:14px 0 6px}
+#qrbox>div{padding:10px;background:#fff;border:1px solid var(--line);border-radius:10px;line-height:0}
+
+/* ---------- 관리 홈 (가입 신청 내역형 헤더) ---------- */
+.ahead{padding-top:8px}
+.ahead .trow{display:flex;align-items:flex-end;justify-content:space-between;margin-top:8px}
+h1.ptitle{font-size:28px;font-weight:800;letter-spacing:-.045em;line-height:1.25}
+.lnk{display:flex;align-items:center;gap:2px;font-size:13.5px;font-weight:600;color:var(--ink);padding:4px 0}
+.bignum{font-size:34px;font-weight:800;letter-spacing:-.04em}
+.bignum em{font-style:normal;color:var(--blue)}
+
+.sum{display:flex;gap:8px;margin-top:10px}
+.sumbox{flex:1;border:1px solid var(--line);border-radius:var(--rc);padding:16px}
+.sumbox span{font-size:12.5px;font-weight:500;color:var(--ink40)}
+.sumbox b{display:block;font-size:24px;font-weight:800;letter-spacing:-.03em;margin-top:4px}
+.toggle{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:var(--rc);padding:16px;margin-top:10px}
+.toggle .tt{flex:1}
+.toggle .tt b{display:block;font-size:14.5px;font-weight:600}
+.toggle .tt span{display:block;font-size:12px;color:var(--ink40);margin-top:3px;line-height:1.45}
+.track{width:48px;height:29px;border-radius:99px;background:#E2E4E8;position:relative;flex:0 0 48px;transition:background .16s}
+.track::after{content:"";position:absolute;top:3px;left:3px;width:23px;height:23px;border-radius:50%;background:#fff;transition:transform .16s;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.track[aria-pressed=true]{background:var(--blue)}
+.track[aria-pressed=true]::after{transform:translateX(19px)}
+.track:disabled{opacity:.45}
+.menu{margin-top:14px;border:1px solid var(--line);border-radius:var(--rc);padding:0 16px}
+.mi{display:flex;align-items:center;padding:17px 0;border-bottom:1px solid var(--line2);font-size:15px;font-weight:500;width:100%;text-align:left}
+.menu .mi:last-child{border-bottom:none}
+.mi .ar{margin-left:auto;color:var(--ink20);display:flex;align-items:center}
+.mi.danger{color:var(--alert)}
+
+.tabs{display:flex;gap:7px;margin:14px 0 6px}
+.tab{font-size:13px;font-weight:600;padding:9px 16px;border-radius:99px;background:#fff;border:1px solid var(--line);color:var(--ink60)}
+.tab[aria-pressed=true]{background:var(--black);border-color:var(--black);color:#fff}
+.bars{display:flex;align-items:flex-end;gap:7px;height:116px}
+.bars div{flex:1;background:var(--blue-soft);border-radius:5px 5px 0 0;min-height:3px}
+.bars div.mx{background:var(--blue)}
+.axis{display:flex;gap:7px;margin-top:7px}
+.axis span{flex:1;text-align:center;font-size:11px;color:var(--ink40)}
+.stack{display:flex;height:12px;border-radius:99px;overflow:hidden;margin-top:10px}
+.legend{display:flex;gap:14px;margin-top:12px;flex-wrap:wrap}
+.legend span{font-size:12px;color:var(--ink60);display:flex;align-items:center;gap:5px}
+.legend i{width:8px;height:8px;border-radius:2px;display:block}
+.rank{display:flex;align-items:center;gap:11px;padding:14px 0;border-bottom:1px solid var(--line2)}
+.rank .rn{flex:1;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank .rv{font-size:14px;font-weight:700}
+.empty{text-align:center;padding:50px 10px}
+.empty b{display:block;font-size:17px;font-weight:700}
+.empty span{display:block;font-size:13.5px;color:var(--ink60);margin-top:8px;line-height:1.6}
+
+#toast{
+  position:absolute;left:50%;bottom:96px;transform:translate(-50%,10px);z-index:95;
+  background:rgba(11,15,16,.92);color:#fff;font-size:13px;font-weight:600;
+  padding:11px 18px;border-radius:99px;opacity:0;pointer-events:none;transition:all .22s;white-space:nowrap;
+}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+.mask{position:absolute;inset:0;background:rgba(11,15,16,.45);z-index:70;display:flex;align-items:flex-end;animation:fade .15s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes up{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+.sheet{background:#fff;width:100%;border-radius:20px 20px 0 0;padding:26px 20px 24px;animation:up .22s cubic-bezier(.2,.9,.3,1);max-height:88%;overflow-y:auto}
+.sheet h3{font-size:19px;font-weight:700;letter-spacing:-.03em;margin-bottom:6px}
+.sheet p.d{font-size:13.5px;color:var(--ink60);margin-bottom:18px;line-height:1.55}
+.sheet .row{display:flex;gap:8px;margin-top:16px}
+.sheet .row .btn{height:52px}
+.pick{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--rc);margin-bottom:8px;width:100%;text-align:left}
+.pick b{font-size:14.5px;font-weight:600}
+</style>
+</head>
+<body>
+
+<aside id="aside">
+  <div class="kick">air링크 MVP</div>
+  <h1>에디터</h1>
+  <p>넘버를 발급받고 나의 air링크 페이지를 만드는 화면입니다. 만든 페이지는 <b>뷰어 화면</b>에서 열립니다.</p>
+  <div class="steps" id="steps"></div>
+  <div class="hint">
+    발행한 넘버는 <b>뷰어 화면</b>에서 다이얼로 열어볼 수 있어요. 같은 브라우저에 저장됩니다.<br><br>
+    <b>9630</b>을 발행하면 시연용으로 보존됩니다. 초기화해도 그대로 남아요.<br><br>
+    다른 PC나 새로 받은 파일로 옮길 때는 <b>내보내기 → 불러오기</b>를 쓰세요. 저장 내용은 파일이 아니라 브라우저에 있습니다.
+  </div>
+  <button class="wipe" id="wipe">초기화 — 넘버 만들기부터</button>
+    <button class="io" id="exp">시연 데이터 내보내기</button>
+    <button class="io" id="imp">데이터 불러오기</button>
+    <input type="file" id="impfile" accept="application/json,.json" hidden>
+
+</aside>
+
+<div id="device">
+  <div class="statusbar"><span id="clock">9:41</span><span>air 5G</span></div>
+  <div class="view" id="view"></div>
+  <div id="toast"></div>
+</div>
+
+<script>
+/* ============================================================
+   air링크 MVP — 에디터 (소유자 플로우)
+   발급 → 프로필·링크 → 테마 → 발행 → 관리
+   ============================================================ */
+
+var KEY='numberlink.mvp.v5';  /* 뷰어 파일과 같은 저장소를 보도록 키는 유지 */
+/* air 공식 로고 (logo_air_big.svg) — 여러 번 인라인되므로 필터(id)는 빼고 도형만 사용 */
+var LOGO='<svg class="logo" viewBox="0 0 227 138" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="air">'+
+  '<path d="M145.6 34.1777L123.984 34.1777L123.984 136.061L145.6 136.061L145.6 34.1777Z" fill="#000"/>'+
+  '<path d="M145.6 0L123.984 0L123.984 21.1458L145.6 21.1458L145.6 0Z" fill="#005FFF"/>'+
+  '<path d="M226.743 34.4688C224.37 34.0621 222.04 33.8496 219.809 33.8496C206.787 33.8496 199.307 39.9533 194.722 45.8202C192.357 48.8462 190.359 52.8131 188.848 57.6694L188.848 34.1774L167.227 34.1774L167.227 136.061L188.848 136.061L188.848 87.0252C188.848 75.7011 192.739 56.6981 218.794 56.6981C223.197 56.6981 226.445 57.3143 226.743 57.3719L226.743 34.4688Z" fill="#000"/>'+
+  '<path d="M80.9368 34.1701L80.9368 48.9694C78.1258 45.3576 74.7161 42.2374 70.7976 39.6879C63.7609 35.1109 55.7067 32.7891 46.8581 32.7891C38.2454 32.7891 30.2346 35.1747 23.0459 39.8761C15.9193 44.5381 10.2323 50.9544 6.13689 58.9428C2.06321 66.8858 0 75.712 0 85.1786C0 94.6421 2.06321 103.483 6.13378 111.457C10.2292 119.479 15.9193 125.91 23.0428 130.575C30.2284 135.28 38.2702 137.662 46.9419 137.662C55.7873 137.662 63.8261 135.355 70.8317 130.812C74.7316 128.281 78.1258 125.179 80.9275 121.579L80.9275 136.063L102.357 136.063L102.357 34.1761L80.9368 34.1701ZM80.0805 92.7573C79.4227 96.0504 78.3337 99.1766 76.8197 102.096C74.1794 107.189 70.5711 111.272 66.1034 114.222C61.7039 117.129 56.8019 118.601 51.5368 118.601C46.2562 118.601 41.3449 117.169 36.9361 114.34C32.4777 111.481 28.8818 107.469 26.2478 102.415C23.5982 97.3403 22.2547 91.519 22.2454 85.1178C22.2547 78.7167 23.5982 72.8984 26.2478 67.8237C28.8818 62.7701 32.4777 58.7577 36.9361 55.8986C41.3418 53.0698 46.2562 51.6373 51.5368 51.6373C56.8019 51.6373 61.7039 53.1123 66.1034 56.017C70.5742 58.9701 74.1794 63.0494 76.8197 68.1423C78.3337 71.0621 79.4258 74.1883 80.0805 77.4814C80.9771 82.1373 80.9771 88.0984 80.0805 92.7573Z" fill="#000"/>'+
+'</svg>';
+var CHEV='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>';
+var CHEVR='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';
+var CHECK='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+try{ ['numberlink.mvp.v1','numberlink.mvp.v2','numberlink.mvp.v3','numberlink.mvp.v4'].forEach(function(k){localStorage.removeItem(k)}); }catch(e){}  /* 이전 버전 정리 */
+
+var ICONS={link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M10 13.5a4 4 0 006 .5l2-2a4 4 0 10-5.7-5.7l-1 1"/><path d="M14 10.5a4 4 0 00-6-.5l-2 2a4 4 0 105.7 5.7l1-1"/></svg>'};
+
+var PLATFORMS=[
+  {m:/instagram\.com/,n:'인스타그램',c:'linear-gradient(135deg,#F9CE34,#EE2A7B 55%,#6228D7)',t:'in'},
+  {m:/youtube\.com|youtu\.be/,n:'유튜브',c:'#FF0033',t:'▶'},
+  {m:/blog\.naver\.com/,n:'네이버 블로그',c:'#03C75A',t:'N'},
+  {m:/cafe\.naver\.com/,n:'네이버 카페',c:'#03C75A',t:'C'},
+  {m:/smartstore\.naver\.com/,n:'스마트스토어',c:'#03C75A',t:'S'},
+  {m:/open\.kakao\.com/,n:'오픈채팅',c:'#FFE812',t:'K',fg:'#3C1E1E'},
+  {m:/tiktok\.com/,n:'틱톡',c:'#000',t:'♪'},
+  {m:/brunch\.co\.kr/,n:'브런치',c:'#1C1C1C',t:'B'},
+  {m:/tistory\.com/,n:'티스토리',c:'#E8452A',t:'T'},
+  {m:/(twitter|x)\.com/,n:'X',c:'#000',t:'X'},
+  {m:/daangn\.com/,n:'당근',c:'#FF6F0F',t:'당'}
+];
+var THEMES=[{k:'paper',n:'기본'},{k:'ink',n:'잉크'},{k:'cobalt',n:'블루'},{k:'signal',n:'시그널'}];
+var BLOCKED=['0000','1111','1119','1112','1330','1366','1388','1544','1577','1588'];
+var DEMO='2580';
+var BRAND='9630';
+
+/* ---------- store ---------- */
+var S=load();
+save();  /* 시드·복구 결과를 즉시 저장해 두 파일이 같은 상태를 보게 한다 */
+function load(){
+  try{var r=localStorage.getItem(KEY);if(r)return migrate(JSON.parse(r));}catch(e){}
+  return seed();
+}
+function migrate(d){
+  if(!d.pages) return seed();
+  if(!d.device) d.device={air:true,os:'ios'};
+  var base=seed();
+  /* 시연용 넘버는 항상 존재하도록 보강 */
+  [BRAND,DEMO].forEach(function(n){ if(!d.pages[n]) d.pages[n]=base.pages[n]; });
+  /* 예전 저장분의 이전 명칭(넘버링크)도 바꿔준다 */
+  Object.keys(d.pages).forEach(function(n){ var p=d.pages[n]; if(p&&p.nick) p.nick=p.nick.replace('넘버링크','air링크'); });
+  return d;
+}
+function seed(){
+  var d={pages:{},me:null,device:{air:true,os:'ios'}};
+  d.pages[DEMO]={
+    num:DEMO,nick:'하루',bio:'성수에서 커피 내려요\n원두는 스마트스토어에서',
+    avatar:null,theme:'cobalt',
+    links:[
+      {id:'a',title:'하루의 커피일상 네이버 블로그',url:'https://blog.naver.com/haru'},
+      {id:'b',title:'하루의 인스타그램',url:'https://instagram.com/haru.coffee'},
+      {id:'c',title:'하루가 판매하는 커피원두 스마트스토어',url:'https://smartstore.naver.com/haru'},
+      {id:'d',title:'커피 유튜브 “하루로그”',url:'https://youtube.com/@harulog'}
+    ],
+    direct:false,created:Date.now()-86400000*12,
+    stats:{views:4206,today:128,daily:[42,58,36,71,54,100,63],src:{dial:42,link:51,qr:7},clicks:{a:1842,b:936,c:411,d:288}}
+  };
+  d.pages[BRAND]={
+    num:BRAND,nick:'야생후추의 air링크',bio:'야생후추의 디지털 세상입니다.',
+    avatar:null,theme:'paper',
+    links:[
+      {id:'i',title:'야생후추 인스타그램',url:'https://www.instagram.com/wild_hoochoo'},
+      {id:'y',title:'후추의 브이로그',url:'https://www.youtube.com/@wild_hoochoo'},
+      {id:'s',title:'후추의 패션 스토어',url:'https://smartstore.naver.com/rurukuku'}
+    ],
+    direct:false,created:Date.now()-86400000*5,
+    stats:{views:12840,today:386,daily:[120,164,138,201,247,386,290],src:{dial:58,link:27,qr:15},
+           clicks:{i:5120,y:1480,s:3180}}
+  };
+  d.me=null;   /* 항상 넘버 만들기부터 시작 */
+  ['1004','8282','7777','0505'].forEach(function(n){
+    d.pages[n]={num:n,taken:true,nick:'익명',bio:'',avatar:null,theme:'paper',links:[],direct:false,
+      stats:{views:0,today:0,daily:[0,0,0,0,0,0,0],src:{dial:0,link:0,qr:0},clicks:{}}};
+  });
+  return d;
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+/* 데모 초기화 — 내 소유 넘버만 비운다.
+   9630 야생후추는 예외: 발행해 둔 내용을 그대로 보존한다. */
+function wipeDemo(){
+  var keep = S.pages[BRAND];
+  var d = seed();
+  if(keep) d.pages[BRAND] = keep;
+  d.me = null;
+  try{ localStorage.setItem(KEY, JSON.stringify(d)); }catch(e){}
+  location.reload();
+}
+
+function me(){return S.me?S.pages[S.me]:null}
+
+/* ---------- utils ---------- */
+function $(s){return document.querySelector(s)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function fmt(n){ if(!n) return ''; return n.length>4 ? n.slice(0,4)+'-'+n.slice(4) : n; }
+function shortlink(n){return 'num.kr/'+n}
+function platform(url){for(var i=0;i<PLATFORMS.length;i++){if(PLATFORMS[i].m.test(url))return PLATFORMS[i]}return null}
+function titleFrom(url){
+  var p=platform(url); if(p)return p.n;
+  try{return new URL(url).hostname.replace(/^www\./,'')}catch(e){return '내 링크'}
+}
+function toast(msg){
+  var t=$('#toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove('on')},1700);
+}
+function available(n){
+  if(BLOCKED.indexOf(n)>=0) return 'blocked';
+  if(S.pages[n]) return 'taken';
+  return 'ok';
+}
+function iconMarkup(p,size){
+  var bg=p?p.c:'var(--ink40)', fg=(p&&p.fg)?p.fg:'#fff', t=p?p.t:'';
+  var st=size?';width:'+size+'px;height:'+size+'px;flex:0 0 '+size+'px;font-size:11px;border-radius:8px':'';
+  return '<span class="ico" style="background:'+bg+';color:'+fg+st+'">'+(p?esc(t):ICONS.link)+'</span>';
+}
+function copy(t){
+  try{navigator.clipboard.writeText(t)}
+  catch(e){var x=document.createElement('textarea');x.value=t;document.body.appendChild(x);x.select();document.execCommand('copy');x.remove()}
+}
+
+
+/* ---- 시연 데이터 내보내기 / 불러오기 ----
+   localStorage는 파일 위치마다 따로 저장되므로, 다른 PC나 새로 받은 파일로 옮길 때 사용 */
+function exportDemo(){
+  try{
+    var blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+    var u=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=u;a.download='airlink-demo.json';a.click();
+    setTimeout(function(){URL.revokeObjectURL(u)},2000);
+    toast('시연 데이터를 내보냈어요');
+  }catch(e){ toast('내보내기에 실패했어요'); }
+}
+function importDemo(file){
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var d=JSON.parse(r.result);
+      if(!d||!d.pages) throw new Error('bad');
+      localStorage.setItem(KEY,JSON.stringify(d));
+      location.reload();
+    }catch(e){ toast('불러올 수 없는 파일이에요'); }
+  };
+  r.readAsText(file);
+}
+
+/* ---------- router ---------- */
+var route='intro',param=null,stack=[];
+function go(r,p,push){
+  if(push!==false&&route) stack.push([route,param]);
+  route=r; param=p||null; render(); $('#view').scrollTop=0;
+}
+function back(){
+  var s=stack.pop();
+  if(s){route=s[0];param=s[1];render()} else go('intro',null,false);
+}
+
+/* ---------- shells ---------- */
+function shell(navHtml,body,foot){
+  return navHtml+'<div class="scroll"><div class="pad pb">'+body+'</div></div>'+(foot?'<div class="foot">'+foot+'</div>':'');
+}
+function nav(title,opt){
+  opt=opt||{};
+  var h='<div class="nav">'+
+    (opt.noback?'<span class="bk"></span>':'<button class="bk" data-a="back" aria-label="뒤로">'+CHEV+'</button>')+
+    '<span class="t">'+esc(title||'')+'</span>'+
+    (opt.right?'<button class="r" data-a="'+opt.rightA+'">'+opt.right+'</button>':'')+'</div>';
+  if(opt.step) h+=prog(opt.step);
+  return h;
+}
+/* 4단계 진행바: 넘버 → 프로필·링크 → 테마 → 발행 */
+function prog(n){
+  var s='<div class="prog">';
+  for(var i=1;i<=4;i++) s+='<i class="'+(i<=n?'on':'')+'"></i>';
+  return s+'</div>';
+}
+
+/* ============================================================
+   화면
+   ============================================================ */
+var V={};
+
+/* ---- 진입 ---- */
+V.intro=function(){
+  var hasMe=!!S.me;
+  var KEYS=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],
+            ['7','PQRS'],['8','TUV'],['9','WXYZ'],['*',''],['0','+'],['#','']];
+  var ROWS=[
+    {c:'linear-gradient(135deg,#F9CE34,#EE2A7B 55%,#6228D7)',t:'in',n:'Instagram',s:'일상을 공유해요'},
+    {c:'#FF0033',t:'▶',n:'YouTube',s:'영상으로 만나요'},
+    {c:'#03C75A',t:'B',n:'Blog',s:'생각을 기록해요'},
+    {c:'#2C64F6',t:'🔗',n:'Website',s:'더 알아보기'},
+    {c:'#111417',t:'✉',n:'Contact',s:'비즈니스 문의'}
+  ];
+  return '<div class="scroll"><div class="introwrap">'+
+      '<div class="brandtop">'+LOGO+'<span class="bt">링크</span></div>'+
+      '<h1 class="hero">디지털 세상으로 연결되는<br><b>나의 두 번째 전화번호</b></h1>'+
+      '<p class="herosub">번호를 누르면, 나의 모든 디지털 링크가<br>한 번에 연결돼요.</p>'+
+
+      '<div class="duo">'+
+        '<div class="mini">'+
+          '<div class="mbar"><span>9:41</span><span>●●●</span></div>'+
+          '<div class="mbody">'+
+            '<div class="mnum num">9630<span>*</span></div>'+
+            '<div class="mcap">나의 링크번호</div>'+
+            '<div class="mkeys">'+KEYS.map(function(k){
+              return '<span>'+k[0]+(k[1]?'<em>'+k[1]+'</em>':'')+'</span>';
+            }).join('')+'</div>'+
+            '<div class="mcall"><i>📞</i></div>'+
+          '</div>'+
+        '</div>'+
+
+        '<div class="arw">››</div>'+
+
+        '<div class="mini">'+
+          '<div class="mbar"><span>9:41</span><span>●●●</span></div>'+
+          '<div class="mbody">'+
+            '<div class="mhead">'+LOGO+'<span>링크</span></div>'+
+            '<div class="mav">앨</div>'+
+            '<div class="mname">앨리스</div>'+
+            '<div class="mnum2 num">9630<span>*</span></div>'+
+            '<div class="mbio">일상을 연결하는 나의 디지털 공간</div>'+
+            '<div class="mrows">'+ROWS.map(function(r){
+              return '<div class="mrow"><span class="mi" style="background:'+r.c+'">'+r.t+'</span>'+
+                '<span class="mt"><b>'+r.n+'</b><em>'+r.s+'</em></span><span class="mg">›</span></div>';
+            }).join('')+'</div>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div></div>'+
+    '<div class="foot">'+
+      '<button class="btn" data-a="'+(hasMe?'home':'pick')+'">'+(hasMe?'내 air링크 관리':'지금 시작하기')+'</button>'+
+      (hasMe?'':'<button class="btn ghost" data-a="home">이미 넘버가 있어요</button>')+
+    '</div>';
+};
+
+/* ---- 넘버 정하기 ---- */
+var pickVal='';
+V.pick=function(){
+  var st=pickVal.length<4?(pickVal.length?'input':'idle'):available(pickVal);
+  var msgs={idle:'숫자를 누르면 쓸 수 있는지 알려드려요',input:(4-pickVal.length)+'자리 더 눌러주세요',
+    ok:'아직 아무도 안 쓴 넘버예요',taken:'이미 주인이 있는 넘버예요',blocked:'사용할 수 없는 넘버예요'};
+  var clss={idle:'idle',input:'idle',ok:'ok',taken:'no',blocked:'no'};
+  var d='';
+  for(var i=0;i<4;i++){
+    var c=pickVal[i];
+    d+='<span class="d'+(c?'':' off')+'">'+(c||'0')+'</span>';
+  }
+  var recs=recommend();
+  return shell(
+    nav('넘버 정하기',{step:1}),
+    '<h1 class="head">어떤 네 자리로<br>기억되고 싶나요?</h1>'+
+    '<p class="sub">반복수, 키패드 패턴, 의미 있는 조합</p>'+
+    '<div class="display num">'+d+'<span class="st">*</span></div>'+
+    '<div class="state '+clss[st]+'">'+msgs[st]+'</div>'+
+    '<div class="chips">'+recs.map(function(r){return '<button class="chip" data-a="fill" data-v="'+r.v+'">'+r.l+' <b>'+fmt(r.v)+'</b></button>'}).join('')+'</div>'+
+    '<div class="keys">'+
+      [1,2,3,4,5,6,7,8,9].map(function(k){return '<button class="key" data-a="k" data-v="'+k+'">'+k+'</button>'}).join('')+
+      '<button class="key aux" data-a="clr">전체</button>'+
+      '<button class="key" data-a="k" data-v="0">0</button>'+
+      '<button class="key aux" data-a="del">⌫</button>'+
+    '</div>',
+    '<button class="btn" data-a="confirm" '+(st==='ok'?'':'disabled')+'>이 넘버로 정하기</button>'+
+    '<p class="note">넘버는 air를 쓰는 동안 내 것이에요.<br>해지하면 일정 기간 뒤에 회수돼요.</p>'
+  );
+};
+function recommend(){
+  var GROUPS=[
+    ['반복수',['7979','2424','3636','5858','9292']],
+    ['패턴',['9630','2580','1470','3690','1379']],
+    ['의미',['1004','8282','5959','1212','2424']],
+    ['연속수',['1234','6789','4321','9876']]
+  ];
+  var out=[];
+  // 서로 다른 성격으로 하나씩
+  for(var g=0;g<GROUPS.length&&out.length<3;g++){
+    var lab=GROUPS[g][0], arr=GROUPS[g][1];
+    for(var i=0;i<arr.length;i++){
+      if(available(arr[i])==='ok'&&!out.some(function(o){return o.v===arr[i]})){
+        out.push({l:lab,v:arr[i]}); break;
+      }
+    }
+  }
+  var n=1000;
+  while(out.length<3&&n<9999){
+    if(available(String(n))==='ok') out.push({l:'추천',v:String(n)});
+    n+=317;
+  }
+  return out;
+}
+
+/* ---- 프로필·링크 ---- */
+var draft=null;
+function newDraft(num){
+  return {num:num,nick:'',bio:'',avatar:null,theme:'paper',links:[],direct:false,
+    stats:{views:0,today:0,daily:[0,0,0,0,0,0,0],src:{dial:0,link:0,qr:0},clicks:{}}};
+}
+V.profile=function(){
+  var d=draft;
+  var av=d.avatar?'<img src="'+d.avatar+'" alt="">':(d.nick?esc(d.nick[0]):'＋');
+  return shell(
+    nav('페이지 만들기',{step:2}),
+    '<div style="display:flex;align-items:flex-start;gap:10px">'+
+      '<h1 class="head" style="flex:1">넘버를 누르면<br>보일 화면이에요</h1>'+
+      '<button data-a="fillsample" style="flex:0 0 auto;font-size:12px;font-weight:600;color:var(--blue);background:var(--blue-soft);padding:8px 12px;border-radius:99px;margin-top:30px">예시로 채우기</button>'+
+    '</div>'+
+    '<div class="avatar-pick">'+
+      '<button class="avatar" data-a="avatar">'+av+'</button>'+
+      '<button data-a="avatar"><span>대표 이미지</span></button>'+
+      '<input type="file" id="avfile" accept="image/*" hidden>'+
+    '</div>'+
+    '<div class="field"><span>이름</span>'+
+      '<label class="inp"><input id="f-nick" maxlength="12" placeholder="어떻게 불러드릴까요" value="'+esc(d.nick)+'"></label></div>'+
+    '<div class="field"><span>소개</span>'+
+      '<label class="inp"><textarea id="f-bio" rows="2" maxlength="40" placeholder="한 줄로 나를 소개해 주세요">'+esc(d.bio)+'</textarea></label></div>'+
+    '<div class="label">연결할 링크</div>'+
+    d.links.map(function(l,i){
+      var p=platform(l.url);
+      return '<div class="lrow"><span class="grip">⠿</span>'+iconMarkup(p)+
+        '<span class="tx"><b>'+esc(l.title)+'</b><span>'+esc(l.url.replace(/^https?:\/\//,''))+'</span></span>'+
+        '<button class="more" data-a="lmore" data-v="'+i+'">⋯</button></div>';
+    }).join('')+
+    '<button class="addrow" data-a="addlink">＋ 링크 추가</button>'+
+    '<p class="note" style="text-align:left;padding-top:10px">URL을 붙여넣으면 이름과 아이콘을 채워드려요</p>',
+    '<button class="btn" data-a="toTheme" '+(d.nick.trim()?'':'disabled')+'>다음</button>'
+  );
+};
+
+/* ---- 테마 ---- */
+V.theme=function(){
+  return shell(
+    nav('페이지 만들기',{step:3}),
+    '<h1 class="head">어떤 분위기로<br>보여줄까요?</h1>'+
+    '<div class="tgrid">'+
+      THEMES.map(function(t){return '<button class="opt" data-a="theme" data-v="'+t.k+'" aria-pressed="'+(draft.theme===t.k)+'"><span class="dot '+t.k+'"></span>'+t.n+'<span class="ck">'+CHECK+'</span></button>'}).join('')+
+    '</div>'+
+    '<div class="preview">'+pageHTML(draft,{mini:true})+'</div>',
+    '<button class="btn" data-a="publish">발행하기</button>'+
+    '<p class="note">발행하면 전화·링크·QR로 열 수 있어요</p>'
+  );
+};
+
+/* ---- 발행 완료 ---- */
+V.done=function(){
+  var p=me();
+  return shell(
+    nav('발행 완료',{noback:true,step:4,right:'닫기',rightA:'home'}),
+    '<h1 class="head">발행이 끝났어요<br>이제 넘버를 알려주세요</h1>'+
+    '<div class="numcard"><div class="n num">'+fmt(p.num)+'<em>*</em></div><div class="c">이제 내 air링크 주소예요</div></div>'+
+    '<div class="label">이렇게 알려주세요</div>'+
+    '<button class="ch" data-a="copy" data-v="'+p.num+'*"><span class="cb">☎</span><span class="cx"><b>전화로 알려주기</b><span>'+p.num+'* 누르고 통화</span></span><span class="act">복사</span></button>'+
+    '<button class="ch" data-a="copy" data-v="'+shortlink(p.num)+'"><span class="cb">🔗</span><span class="cx"><b>링크로 알려주기</b><span>'+shortlink(p.num)+'</span></span><span class="act">복사</span></button>'+
+    '<button class="ch" data-a="qrsave"><span class="cb">▦</span><span class="cx"><b>QR로 알려주기</b><span>인쇄물·매장용</span></span><span class="act">저장</span></button>'+
+    '<div id="qrbox"></div>'+
+    '<div class="hint">뷰어 화면에서 <b>'+p.num+'*</b>를 눌러 통화하면 이 페이지가 열려요.</div>',
+    '<button class="btn" data-a="sharecard">공유 카드 저장하기</button>'
+  );
+};
+
+/* ---- 관리 홈 ---- */
+V.home=function(){
+  var p=me();
+  if(!p) return V.intro();
+  var many=p.links.length>1;
+  return shell('',
+    '<div class="ahead">'+LOGO+
+      '<div class="trow"><h1 class="ptitle">내 air링크</h1><button class="lnk" data-a="share">공유하기'+CHEVR+'</button></div></div>'+
+    '<div class="card" style="margin-top:22px">'+
+      '<div class="bignum num">'+fmt(p.num)+'<em>*</em></div>'+
+      '<p class="cap">'+shortlink(p.num)+'</p>'+
+      '<button class="btn blue" data-a="view">내 페이지 보기</button>'+
+    '</div>'+
+    '<div class="sum">'+
+      '<div class="sumbox"><span>오늘 조회</span><b>'+p.stats.today+'</b></div>'+
+      '<div class="sumbox"><span>전체 조회</span><b>'+p.stats.views.toLocaleString()+'</b></div>'+
+    '</div>'+
+    '<div class="toggle">'+
+      '<span class="tt"><b>곧바로 연결</b><span>'+(many?'링크가 하나일 때만 쓸 수 있어요':'링크가 하나면 페이지를 건너뛰어요')+'</span></span>'+
+      '<button class="track" data-a="direct" aria-pressed="'+(!!p.direct)+'" '+(many?'disabled':'')+'></button>'+
+    '</div>'+
+    '<div class="menu">'+
+      '<button class="mi" data-a="edit">링크 편집<span class="ar">'+CHEVR+'</span></button>'+
+      '<button class="mi" data-a="theme2">테마 바꾸기<span class="ar">'+CHEVR+'</span></button>'+
+      '<button class="mi" data-a="stats">통계 보기<span class="ar">'+CHEVR+'</span></button>'+
+      '<button class="mi" data-a="settings">넘버 설정<span class="ar">'+CHEVR+'</span></button>'+
+    '</div>'+
+    '<div class="card">'+
+      '<p>기억에 남는 넘버,<br>남아 있을 때 잡아두세요</p>'+
+      '<p class="cap">반복수·패턴 넘버는 수량이 적어요</p>'+
+      '<button class="btn sec" data-a="premium">프리미엄 넘버 보기</button>'+
+    '</div>'
+  );
+};
+
+/* ---- 통계 ---- */
+var statTab=7;
+V.stats=function(){
+  var p=me(),s=p.stats;
+  if(!s.views) return shell(nav('통계'),
+    '<div class="empty"><b>아직 아무도 열어보지 않았어요</b><span>넘버를 알려주는 것부터 시작해요</span>'+
+    '<div style="margin-top:22px"><button class="btn blue" data-a="share">내 넘버 알려주기</button></div></div>');
+  var mx=Math.max.apply(null,s.daily);
+  return shell(nav('통계'),
+    '<div class="tabs">'+
+      '<button class="tab" data-a="tab" data-v="7" aria-pressed="'+(statTab===7)+'">7일</button>'+
+      '<button class="tab" data-a="tab" data-v="30" aria-pressed="'+(statTab===30)+'">30일</button>'+
+    '</div>'+
+    '<div class="label">조회수</div>'+
+    '<div class="bars">'+s.daily.map(function(v){return '<div class="'+(v===mx?'mx':'')+'" style="height:'+Math.max(3,v/mx*100)+'%"></div>'}).join('')+'</div>'+
+    '<div class="axis">'+['월','화','수','목','금','토','일'].map(function(d){return '<span>'+d+'</span>'}).join('')+'</div>'+
+    '<div class="label">어떻게 들어왔나요</div>'+
+    '<div class="stack">'+
+      '<i style="width:'+s.src.link+'%;background:var(--cobalt)"></i>'+
+      '<i style="width:'+s.src.dial+'%;background:var(--signal)"></i>'+
+      '<i style="width:'+s.src.qr+'%;background:var(--ink40)"></i>'+
+    '</div>'+
+    '<div class="legend">'+
+      '<span><i style="background:var(--cobalt)"></i>링크 '+s.src.link+'%</span>'+
+      '<span><i style="background:var(--signal)"></i>전화 '+s.src.dial+'%</span>'+
+      '<span><i style="background:var(--ink40)"></i>QR '+s.src.qr+'%</span>'+
+    '</div>'+
+    '<div class="label">많이 누른 링크</div>'+
+    (p.links.map(function(l){return '<div class="rank"><span class="rn">'+esc(l.title)+'</span><span class="rv num">'+(s.clicks[l.id]||0).toLocaleString()+'</span></div>'}).join('')||'<p class="sub">등록된 링크가 없어요</p>')
+  );
+};
+
+/* ---- 넘버 설정 ---- */
+V.settings=function(){
+  var p=me();
+  return shell(nav('넘버 설정'),
+    '<div class="toggle" style="margin-top:18px">'+
+      '<span class="tt"><b>페이지 공개</b><span>끄면 나만 볼 수 있어요</span></span>'+
+      '<button class="track" data-a="pub" aria-pressed="'+(p.private?'false':'true')+'"></button>'+
+    '</div>'+
+    '<div class="menu">'+
+      '<button class="mi" data-a="change">넘버 변경<span class="ar" style="font-size:12.5px;color:var(--ink40);gap:2px">올해 1회 가능'+CHEVR+'</span></button>'+
+      '<button class="mi danger" data-a="nodel">넘버 삭제<span class="ar">'+CHEVR+'</span></button>'+
+    '</div>'+
+    '<div class="hint" style="margin-top:18px">넘버를 바꾸면 지금 넘버는 그 자리에서 사라져요. 일정 기간 동안은 아무도 쓸 수 없고, 이미 알려준 넘버도 열리지 않아요.</div>'
+  );
+};
+
+/* ---- 내 페이지 미리보기 ---- */
+V.preview=function(){
+  var p=me();
+  return '<div class="nav" style="border-bottom:1px solid var(--line2)"><button class="bk" data-a="back" aria-label="뒤로">'+CHEV+'</button><span class="t" style="font-size:13px;color:var(--ink40);font-weight:600">'+shortlink(p.num)+'</span></div>'+
+    '<div class="scroll">'+pageHTML(p,{})+'</div>';
+};
+
+function pageHTML(p,opt){
+  opt=opt||{};
+  var mini=opt.mini;
+  var av=p.avatar?'<img src="'+p.avatar+'" alt="">':(p.nick?esc(p.nick[0]):'·');
+  return '<div class="page" data-theme="'+p.theme+'" style="'+(mini?'padding:22px 18px 14px;transform:scale(.92);transform-origin:top center':'')+'">'+
+    '<div class="pg-num num">'+fmt(p.num)+'<em>*</em></div>'+
+    '<div class="pg-av" '+(mini?'style="width:62px;height:62px;font-size:22px;margin:14px auto 10px"':'')+'>'+av+'</div>'+
+    '<div class="pg-name" '+(mini?'style="font-size:16px"':'')+'>'+esc(p.nick||'이름')+'</div>'+
+    (p.bio?'<div class="pg-bio">'+esc(p.bio)+'</div>':'')+
+    '<div class="pg-links">'+
+      (p.links.map(function(l){
+        var pf=platform(l.url);
+        return '<a class="pg-link" href="'+esc(l.url)+'" target="_blank" rel="noopener" '+(mini?'style="min-height:42px;font-size:12.5px"':'')+'>'+
+          iconMarkup(pf,mini?22:28)+'<span class="t">'+esc(l.title)+'</span></a>';
+      }).join('')||'<div style="text-align:center;font-size:12.5px;color:var(--pg-mute);padding:14px 0">연결된 링크가 없어요</div>')+
+    '</div>'+
+    '<div class="pg-foot"><span class="pg-cta">＋ 나도 넘버 만들기</span><div class="pg-rep">air링크 · 신고하기</div></div>'+
+  '</div>';
+}
+
+/* ============================================================
+   시트
+   ============================================================ */
+function sheet(html){
+  var m=document.createElement('div'); m.className='mask';
+  m.innerHTML='<div class="sheet">'+html+'</div>';
+  m.onclick=function(e){if(e.target===m)m.remove()};
+  $('#device').appendChild(m); return m;
+}
+function linkSheet(idx){
+  var ed=idx!=null, l=ed?draft.links[idx]:{title:'',url:''};
+  var m=sheet('<h3>'+(ed?'링크 수정':'링크 추가')+'</h3><p class="d">URL을 붙여넣으면 이름을 채워드려요</p>'+
+    '<div class="field"><span>주소</span><label class="inp"><input id="lu" placeholder="https://" value="'+esc(l.url)+'"></label></div>'+
+    '<div class="field"><span>버튼에 보일 이름</span><label class="inp"><input id="lt" maxlength="30" placeholder="자동으로 채워져요" value="'+esc(l.title)+'"></label></div>'+
+    '<div class="row">'+(ed?'<button class="btn sec" data-x="del">삭제</button>':'')+'<button class="btn" data-x="ok">저장</button></div>');
+  var lu=m.querySelector('#lu'),lt=m.querySelector('#lt');
+  setTimeout(function(){lu.focus()},80);
+  lu.addEventListener('input',function(){
+    if(!lt.value.trim()&&/^https?:\/\/.+\..+/.test(lu.value)) lt.value=titleFrom(lu.value);
+  });
+  m.addEventListener('click',function(e){
+    var x=e.target.dataset.x; if(!x) return;
+    if(x==='del'){ draft.links.splice(idx,1); m.remove(); render(); return; }
+    var url=lu.value.trim(); if(!url){m.remove();return}
+    if(!/^https?:\/\//.test(url)) url='https://'+url;
+    var title=lt.value.trim()||titleFrom(url);
+    if(ed) draft.links[idx]={id:l.id,url:url,title:title};
+    else draft.links.push({id:'l'+Date.now().toString(36),url:url,title:title});
+    m.remove(); render();
+  });
+}
+function shareSheet(){
+  var p=me(); if(!p) return;
+  var txt=p.num+'* ← 전화 다이얼에 누르고 통화\n'+shortlink(p.num)+' ← 다른 통신사는 이 링크로';
+  var m=sheet('<h3>내 넘버 알려주기</h3><p class="d">숫자를 먼저, 링크를 함께 보내요</p>'+
+    '<div class="inp" style="display:block;white-space:pre-line;font-size:13.5px;line-height:1.7;color:var(--ink60)">'+esc(txt)+'</div>'+
+    '<div class="row"><button class="btn sec" data-x="card">공유 카드</button><button class="btn" data-x="copy">문구 복사</button></div>');
+  m.addEventListener('click',function(e){
+    var x=e.target.dataset.x; if(!x)return;
+    if(x==='copy'){copy(txt);toast('복사됐어요');m.remove()}
+    if(x==='card'){m.remove();shareCard()}
+  });
+}
+function delSheet(){
+  var p=me(); if(!p) return;
+  if(p.num===BRAND){
+    var bm=sheet('<h3>시연용 고정 넘버예요</h3><p class="d">'+fmt(BRAND)+'* 야생후추는 초기화해도 지워지지 않게 보존됩니다.<br><br>'+
+      '내용을 바꾸려면 <b>링크 편집·테마 바꾸기</b> 후 다시 발행하세요. 발행한 내용이 그대로 저장됩니다.</p>'+
+      '<div class="row"><button class="btn sec" data-x="no">알겠어요</button></div>');
+    bm.addEventListener('click',function(e){ if(e.target.dataset.x) bm.remove(); });
+    return;
+  }
+  var m=sheet('<h3>넘버 삭제</h3><p class="d">'+fmt(p.num)+'* 를 삭제하면 페이지가 바로 닫히고, 이미 알려준 넘버로도 열리지 않아요.</p>'+
+    '<div class="row"><button class="btn sec" data-x="no">그만두기</button>'+
+    '<button class="btn" data-x="yes" style="background:var(--alert)">삭제</button></div>');
+  m.addEventListener('click',function(e){
+    var x=e.target.dataset.x; if(!x) return;
+    if(x==='yes'){
+      delete S.pages[p.num]; S.me=null; save();
+      m.remove(); stack=[]; go('intro',null,false); toast('넘버를 삭제했어요');
+    } else m.remove();
+  });
+}
+function premiumSheet(){
+  sheet('<h3>기억에 남는 넘버</h3><p class="d">외우기 쉬운 조합일수록 수량이 적어요</p>'+
+    '<button class="pick"><span class="ico" style="background:var(--black)">4</span><span style="flex:1"><b>반복수</b><div style="font-size:12px;color:var(--ink40);margin-top:2px">7979 · 2424 같은 조합 · 9개 남음</div></span></button>'+
+    '<button class="pick"><span class="ico" style="background:var(--cobalt)">⌨</span><span style="flex:1"><b>키패드 패턴</b><div style="font-size:12px;color:var(--ink40);margin-top:2px">2580 · 1470 같은 조합 · 6개 남음</div></span></button>'+
+    '<p class="note" style="text-align:left;padding-top:14px">판매 정책은 준비 중이에요.</p>');
+}
+
+/* ---- 공유 카드 ---- */
+function shareCard(){
+  var p=me(); if(!p) return;
+  var W=1080,H=1920,c=document.createElement('canvas');
+  c.width=W;c.height=H;var g=c.getContext('2d');
+  var TH={paper:['#FFFFFF','#111417','#2C64F6'],ink:['#111417','#FFFFFF','#FFCC00'],
+          cobalt:['#2C64F6','#FFFFFF','#FFCC00'],signal:['#FFCC00','#111417','#2C64F6']}[p.theme];
+  g.fillStyle=TH[0];g.fillRect(0,0,W,H);
+  g.textAlign='center';
+  g.fillStyle=TH[1];g.font='700 44px Pretendard,sans-serif';
+  g.globalAlpha=.6;g.fillText('나의 air링크',W/2,620);g.globalAlpha=1;
+  g.font='800 150px Pretendard,sans-serif';
+  var t=fmt(p.num), tw=g.measureText(t).width, sw=g.measureText(' *').width;
+  g.textAlign='left';
+  g.fillText(t,(W-tw-sw)/2,800);
+  g.fillStyle=TH[2];g.fillText(' *',(W-tw-sw)/2+tw,800);
+  g.textAlign='center';g.fillStyle=TH[1];
+  g.font='700 56px Pretendard,sans-serif';
+  g.fillText(p.nick,W/2,920);
+  g.globalAlpha=.55;g.font='500 38px Pretendard,sans-serif';
+  g.fillText(shortlink(p.num),W/2,1000);
+  g.font='500 34px Pretendard,sans-serif';
+  g.fillText('전화 다이얼에 '+p.num+'* 누르고 통화',W/2,1760);
+  g.globalAlpha=1;
+  c.toBlob(function(b){
+    var u=URL.createObjectURL(b),a=document.createElement('a');
+    a.href=u;a.download='airlink_'+p.num+'.png';a.click();
+    setTimeout(function(){URL.revokeObjectURL(u)},2000);
+    toast('공유 카드를 저장했어요');
+  });
+}
+
+/* ============================================================
+   이벤트
+   ============================================================ */
+$('#view').addEventListener('click',function(e){
+  var b=e.target.closest('[data-a]'); if(!b) return;
+  var a=b.dataset.a,v=b.dataset.v;
+
+  if(a==='back') return back();
+  if(a==='home'){ stack=[]; return go(S.me?'home':'intro',null,false); }
+
+  if(a==='pick'){ pickVal=''; return go('pick'); }
+  if(a==='k'){ if(pickVal.length<4){pickVal+=v;render()} return; }
+  if(a==='del'){ pickVal=pickVal.slice(0,-1); return render(); }
+  if(a==='clr'){ pickVal=''; return render(); }
+  if(a==='fill'){ pickVal=v; return render(); }
+  if(a==='confirm'){ draft=newDraft(pickVal); return go('profile'); }
+
+  if(a==='avatar'){ return $('#avfile').click(); }
+  if(a==='fillsample'){
+    syncProfile();
+    draft.nick='야생후추';
+    draft.bio='제철 재료로 만드는 한 접시\n성수 · 예약제 운영';
+    draft.theme='ink';
+    draft.links=[
+      {id:'i',title:'인스타그램 @wildpepper',url:'https://instagram.com/wildpepper'},
+      {id:'y',title:'유튜브 — 오늘의 메뉴 기록',url:'https://youtube.com/@wildpepper'},
+      {id:'b',title:'네이버 블로그 — 재료 이야기',url:'https://blog.naver.com/wildpepper'},
+      {id:'s',title:'스마트스토어 — 소스·드레싱 판매',url:'https://smartstore.naver.com/wildpepper'},
+      {id:'k',title:'카카오 오픈채팅 — 예약·문의',url:'https://open.kakao.com/o/wildpepper'}
+    ];
+    toast('예시로 채웠어요');
+    return render();
+  }
+  if(a==='addlink'){ syncProfile(); return linkSheet(null); }
+  if(a==='lmore'){ syncProfile(); return linkSheet(Number(v)); }
+  if(a==='toTheme'){ syncProfile(); return go('theme'); }
+
+  if(a==='theme'){ draft.theme=v; return render(); }
+  if(a==='publish'){
+    S.pages[draft.num]=draft; S.me=draft.num;
+    save();
+    stack=[]; return go('done',null,false);
+  }
+
+  if(a==='copy'){ copy(v); return toast('복사됐어요'); }
+  if(a==='qrsave'){ return toast('QR을 저장했어요'); }
+  if(a==='sharecard'){ return shareCard(); }
+
+  if(a==='share'){ return shareSheet(); }
+  if(a==='view'){ return go('preview'); }
+  if(a==='edit'){ draft=me(); return go('profile'); }
+  if(a==='theme2'){ draft=me(); return go('theme'); }
+  if(a==='stats'){ return go('stats'); }
+  if(a==='settings'){ return go('settings'); }
+  if(a==='premium'){ return premiumSheet(); }
+  if(a==='direct'){ var p=me(); p.direct=!p.direct; save(); return render(); }
+  if(a==='tab'){ statTab=Number(v); return render(); }
+
+  if(a==='pub'){ var q=me(); q.private=!q.private; save(); return render(); }
+  if(a==='change'){ pickVal=''; return go('pick'); }
+  if(a==='nodel'){ return delSheet(); }
+});
+
+function syncProfile(){
+  var n=$('#f-nick'),b=$('#f-bio');
+  if(n) draft.nick=n.value;
+  if(b) draft.bio=b.value;
+}
+document.addEventListener('input',function(e){
+  if(!draft) return;
+  if(e.target.id==='f-nick'){
+    draft.nick=e.target.value;
+    var btn=document.querySelector('[data-a="toTheme"]');
+    if(btn) btn.disabled=!e.target.value.trim();
+  }
+  if(e.target.id==='f-bio') draft.bio=e.target.value;
+});
+document.addEventListener('change',function(e){
+  if(e.target.id==='impfile'&&e.target.files[0]) return importDemo(e.target.files[0]);
+  if(e.target.id==='avfile'&&e.target.files[0]){
+    var r=new FileReader();
+    r.onload=function(){draft.avatar=r.result;render()};
+    r.readAsDataURL(e.target.files[0]);
+  }
+});
+
+/* ============================================================
+   렌더
+   ============================================================ */
+var STEPS=[
+  {k:'pick',n:'넘버 정하기'},
+  {k:'profile',n:'프로필·링크'},
+  {k:'theme',n:'테마'},
+  {k:'done',n:'발행'},
+  {k:'home',n:'관리·통계'}
+];
+function renderSteps(){
+  var el=document.getElementById('steps'); if(!el) return;
+  var idx=STEPS.map(function(s){return s.k}).indexOf(route);
+  if(route==='stats'||route==='settings'||route==='preview') idx=4;
+  el.innerHTML=STEPS.map(function(s,i){
+    var cls=i===idx?'st on':(idx>=0&&i<idx?'st done':'st');
+    return '<div class="'+cls+'"><i>'+(idx>=0&&i<idx?'✓':(i+1))+'</i>'+s.n+'</div>';
+  }).join('');
+}
+function render(){
+  var f=V[route]||V.intro;
+  $('#view').innerHTML=f();
+  renderSteps();
+  if(route==='done'){
+    var box=$('#qrbox'); var ok=false;
+    if(box&&window.QRCode){
+      box.innerHTML='<div id="qr"></div>';
+      try{ new QRCode(document.getElementById('qr'),{text:'https://'+shortlink(me().num),width:116,height:116,correctLevel:QRCode.CorrectLevel.M}); ok=true; }catch(e){}
+    }
+    if(box&&!ok) box.innerHTML='<div style="width:136px;height:136px;display:flex;align-items:center;justify-content:center;font-size:11.5px;color:var(--ink40);text-align:center;line-height:1.5">QR 코드<br>(인터넷 연결 시 표시)</div>';
+  }
+}
+document.addEventListener('click',function(e){
+  if(e.target.id==='wipe') wipeDemo();
+  if(e.target.id==='exp') exportDemo();
+  if(e.target.id==='imp') document.getElementById('impfile').click();
+
+});
+(function clock(){
+  var d=new Date();
+  $('#clock').textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+  setTimeout(clock,20000);
+})();
+render();
+</script>
+</body>
+</html>
